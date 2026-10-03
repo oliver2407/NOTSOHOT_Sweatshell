@@ -1,0 +1,1242 @@
+/*
+ * SweatShell control panel.
+ *
+ * The brief was a wall-thermostat app: a saturated field, a circular gauge, a row of
+ * modes, one action, and tabs along the bottom. That structure is kept exactly. The
+ * colour is not borrowed from it — a thermostat is blue because it sells cold air,
+ * and this sells neither cold nor air. The field is the deep green-teal of set
+ * alginate, the arc is the pale aqua of gel that is still wet, and the panels on the
+ * inner tabs are eggshell. The product is made of two things and the screen is made
+ * of the same two.
+ *
+ * Every colour below was measured against the lightest point of the field before it
+ * was written down. Worst ratio anywhere on the screen is 4.18:1; white type is
+ * 7.29:1. The reference app's white-on-mid-blue sits near 3.5:1, so the field here
+ * is deliberately darker than the thing it is modelled on.
+ *
+ * Numerals are thin and wide-tracked. That is the control-panel idiom — a dial on a
+ * wall, not a headline — and it is the one place the type does any work.
+ */
+
+:root {
+  --field-top: #0c615c;
+  --field-bottom: #073d3c;
+
+  --ink: #ffffff;
+  --ink-dim: #cae7e2;
+  --ink-faint: rgba(255, 255, 255, 0.4);
+
+  --gel: #7fe3d0; /* wet gel: the arc, the chart line, the primary action */
+  --shell: #f2ede3; /* eggshell: panels on the inner tabs */
+
+  --track: rgba(255, 255, 255, 0.14);
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel-line: rgba(255, 255, 255, 0.14);
+
+  --good: #6fe3a4;
+  --warn: #ffc24d;
+  --crit: #ffb0a9;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--field-bottom);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The whole app is one screen with a fixed tab bar; only the tab body scrolls. */
+.shell {
+  position: relative; /* the alert overlay anchors to this */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 460px;
+  margin: 0 auto;
+  background: linear-gradient(170deg, var(--field-top) 0%, var(--field-bottom) 78%);
+}
+
+
+
+
+
+/* --- header ----------------------------------------------------------- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 6px;
+  flex: none;
+}
+
+.bar .where {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Permanent, and loud enough to read without looking for it.
+ *
+ * It uses the warning colour rather than a quiet grey on purpose: this is the one
+ * label on the screen that changes what every other number means.
+ */
+.demo-badge {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #3a2400;
+  background: var(--warn);
+  white-space: nowrap;
+}
+
+.bar .when {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* --- tab body --------------------------------------------------------- */
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- alerts ----------------------------------------------------------- */
+/*
+ * Floated over the content, not laid out above it. In the flow, an alert arriving
+ * mid-glance pushed the dial down the screen and whatever the person was reaching
+ * for moved out from under their thumb. Here the layout underneath never moves.
+ */
+
+/*
+ * Anchored above the tab bar, not under the header. Floating it at the top kept the
+ * layout still but covered the three roll buttons — the exact controls someone
+ * reaches for in response to a storm warning. Down here it sits in the space the
+ * control tab leaves empty and covers nothing worth pressing.
+ */
+.alerts {
+  position: absolute;
+  bottom: 78px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 0 16px;
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.alert {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 10px 12px 14px;
+  border-radius: 14px;
+  /* Opaque rather than translucent: it sits on top of the dial, and a see-through
+     panel over a big numeral is unreadable. */
+  background: #0a4f4b;
+  /* Lifted off the field by its shadow rather than an outline — it is the one
+     thing on screen that sits above everything else, and a shadow says that. */
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  line-height: 1.4;
+  pointer-events: auto;
+}
+
+.alert strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.alert .pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: none;
+  margin-top: 6px;
+}
+
+.alert-x {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 6px;
+  margin: -4px 0 0;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+  flex: none;
+}
+
+.alert-x:hover {
+  color: var(--ink);
+}
+
+/* --- who is deciding -------------------------------------------------- */
+
+/*
+ * Both halves are drawn and labelled at all times. A single toggle shows one word
+ * and leaves you to work out whether it means the current state or the thing it
+ * would switch to; with both sides on screen there is nothing to work out.
+ */
+.who {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  /* Narrower than the content around it. Full-width it read as the headline of the
+     screen, which it is not — the temperature is. */
+  width: min(284px, calc(100% - 40px));
+  margin: 14px auto 0;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  flex: none;
+}
+
+.who-half {
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 11px 0;
+  min-height: 44px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.who-half[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--field-bottom);
+}
+
+.who-half:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mode-says {
+  margin: 10px 20px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.4;
+  flex: none;
+  min-height: 36px; /* reserved, so the sentence changing never moves the dial */
+}
+
+/* --- the dial --------------------------------------------------------- */
+
+.dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  flex: none;
+}
+
+.dial-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* Thin and wide: a dial on a wall, not a headline. */
+.reading {
+  font-size: 76px;
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.reading .deg {
+  font-size: 0.42em;
+  font-weight: 300;
+  vertical-align: top;
+  line-height: 1.6;
+  margin-left: 2px;
+}
+
+.dial-sub {
+  font-size: 13.5px;
+  color: var(--ink-dim);
+}
+
+.dial-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+/* Footnote under a panel. It had no rule at all until now, so it was rendering at
+   body size and reading as instruction rather than aside. */
+.tiny {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/* Specific enough to beat `.panel p`, which otherwise repaints it back to body
+   ink — a failure notice rendered as ordinary prose reads as a description. */
+.warnline,
+.panel .warnline {
+  color: var(--crit);
+}
+
+/* --- the roof unit's address ------------------------------------------ */
+
+.addr {
+  margin-top: 14px;
+}
+
+.addr-l {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 7px;
+}
+
+.addr-row {
+  display: flex;
+  gap: 8px;
+}
+
+.addr-in {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 11px 12px;
+  min-height: 46px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.18);
+  border: none;
+  border-radius: 11px;
+}
+
+.addr-go {
+  flex: none;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  padding: 11px 16px;
+  min-height: 46px;
+  border: none;
+  border-radius: 11px;
+  color: var(--field-bottom);
+  background: var(--gel);
+  cursor: pointer;
+}
+
+.addr-go:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.probes {
+  margin-top: 18px;
+}
+
+.probe {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.probe-v {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.probe-i {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* Tucked away while the unit is answering — it is the right thing to reach for
+   when nothing works, and clutter the rest of the time. */
+.fold {
+  margin-top: 18px;
+}
+
+.fold > summary {
+  font-size: 13px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::before {
+  content: "+ ";
+  color: var(--ink-faint);
+}
+
+.fold[open] > summary::before {
+  content: "− ";
+}
+
+/* --- where the sheet is, and how to move it ---------------------------- */
+
+/*
+ * This line exists because a highlighted button is not a reading. It is written
+ * from what the roof unit reports, so it stays true while the unit is the one
+ * deciding and nothing on screen has been pressed.
+ */
+.sheet-is {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 20px 0;
+  padding: 11px 16px;
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.16);
+  flex: none;
+}
+
+.sheet-k {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sheet-v {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sheet-v .pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* Movement is the one thing here worth animating: it is the only state that is
+   about to stop being true. */
+.pip.beat {
+  animation: beat 1.1s ease-in-out infinite;
+}
+
+@keyframes beat {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pip.beat {
+    animation: none;
+  }
+}
+
+.rolls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 20px 0;
+  flex: none;
+}
+
+.roll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 62px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.roll:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.roll:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.roll-l {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Marks the button matching where the sheet already is. A label, not a selection:
+   the line above is what states the position, this only saves a glance.
+   It sits on its own line under the label. Beside it, the tag stole width and
+   wrapped "Roll up" in two; floated into the corner, it landed on top of the
+   words. A button is small — a second line is the only room it actually has. */
+.nowtag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--field-bottom);
+  background: var(--ink-dim);
+}
+
+/* --- facts under the dial --------------------------------------------- */
+
+.facts {
+  display: flex;
+  justify-content: center;
+  gap: 38px;
+  padding: 16px 0 4px;
+  flex: none;
+}
+
+.fact {
+  text-align: center;
+}
+
+.fact .v {
+  font-size: 21px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+.fact .k {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+/* --- primary action --------------------------------------------------- */
+
+/* Sits just under the readings rather than pinned to the bottom of the screen.
+   Pushed down with `auto` it left a void on a tall phone and the thumb had to
+   travel past nothing to reach it. */
+.act {
+  margin: 26px auto 8px;
+  padding: 14px 40px;
+  min-height: 50px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  flex: none;
+}
+
+.act.go {
+  background: var(--gel);
+  color: #06302e;
+  font-weight: 600;
+}
+
+.act:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- tab bar ---------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  flex: none;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  min-height: 52px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+}
+
+/*
+ * The wordmark only appears where there is a sidebar to put it in. On a phone the
+ * header already says whose roof this is, and the name would cost a line of the one
+ * screen that must not scroll.
+ *
+ * Declared here, above the desktop block at the end of this file, because the
+ * override lives there. Written the other way round the base rule wins on source
+ * order and the thing never appears — which is exactly what happened the first time.
+ */
+.brand {
+  display: none;
+  padding: 2px 14px 20px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* Capped on desktop; full width on a phone, where it is the only column there is. */
+.column {
+  width: 100%;
+}
+
+/* --- panels on the inner tabs ----------------------------------------- */
+
+/*
+ * A surface, not a box. Every panel used to be outlined, every list row ruled and
+ * every column edged, and on a screen this calm the lines were the loudest thing
+ * on it — a drawing of structure laid over content that already had structure.
+ * The fill is lifted slightly to do the work the outline was doing, and
+ * everything else here is held apart by space.
+ */
+.panel {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 18px;
+  margin-top: 14px;
+}
+
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+}
+
+.row + .row {
+  margin-top: 2px;
+}
+
+.row .lead {
+  font-size: 15px;
+}
+
+.row .note {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+/* --- switch ----------------------------------------------------------- */
+
+.switch {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: var(--track);
+  cursor: pointer;
+  flex: none;
+  transition: background 0.15s;
+}
+
+.switch[aria-checked="true"] {
+  background: var(--gel);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+/* --- time inputs ------------------------------------------------------ */
+
+.times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 4px 0 12px;
+}
+
+.times label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+.times input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 12px;
+  min-height: 48px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.18);
+  border: none;
+  border-radius: 12px;
+}
+
+/* --- schedule windows -------------------------------------------------- */
+
+.win {
+  padding: 12px 8px;
+  margin-top: 10px;
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.win.off {
+  opacity: 0.5;
+}
+
+.win-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A time input that shows AM/PM needs about 100px at this size. At 390px wide,
+   after the panel padding, the toggle and the gaps, there is just enough for two —
+   so the font and padding here are sized to the narrowest phone, not chosen. */
+.win-times {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.win-times input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 5px;
+  min-height: 46px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.18);
+  border: none;
+  border-radius: 11px;
+}
+
+.win-dash {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+.switch.sm {
+  width: 42px;
+  height: 25px;
+}
+
+.switch.sm::after {
+  width: 19px;
+  height: 19px;
+}
+
+.switch.sm[aria-checked="true"]::after {
+  transform: translateX(17px);
+}
+
+/* --- repeat mode picker ------------------------------------------------ */
+
+.seg {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+}
+
+.seg-btn {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.seg-btn[aria-pressed="true"] {
+  background: var(--gel);
+  color: #06302e;
+  font-weight: 600;
+}
+
+.days {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* Seven across so the grid lines up with a month, and the 29th-31st sit on their
+   own short row the way they do on a calendar. */
+.dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.dates .day {
+  min-height: 34px;
+  font-size: 12.5px;
+  border-radius: 9px;
+}
+
+.day {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.day[aria-pressed="true"] {
+  background: var(--gel);
+  color: #06302e;
+  font-weight: 600;
+}
+
+.win-says {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 10px 0 0;
+  line-height: 1.45;
+}
+
+.win-says .now {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.link {
+  background: none;
+  border: none;
+  padding: 8px 0;
+  min-height: 40px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--gel);
+  cursor: pointer;
+  text-align: left;
+}
+
+.link.danger {
+  color: var(--crit);
+}
+
+.win-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* Deleting has no undo, so it asks once — inline, where the row is, rather than
+   in a dialog that covers what is being deleted. */
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.confirm span {
+  flex: 1;
+}
+
+.confirm .link {
+  flex: none;
+  font-weight: 600;
+}
+
+/* Closes the schedule group. Without the rule underneath it, the button read as
+   though it belonged to the weather row that follows. */
+.mini.wide {
+  width: 100%;
+  margin: 12px 0 16px;
+}
+
+.win-group-end {
+  padding-bottom: 4px;
+}
+
+/* --- small button inside a panel -------------------------------------- */
+
+.mini {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--ink);
+  cursor: pointer;
+  flex: none;
+}
+
+.mini:disabled {
+  opacity: 0.45;
+}
+
+/* --- progress --------------------------------------------------------- */
+
+.bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gel);
+}
+
+/* --- care list -------------------------------------------------------- */
+
+.care {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.care li {
+  padding: 11px 0;
+  font-size: 14px;
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+
+.care li + li {
+  margin-top: 2px;
+}
+
+.empty {
+  margin: auto;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 14px;
+  padding: 40px 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--gel);
+  outline-offset: 2px;
+}
+
+/*
+ * Desktop: one screen, three columns, nothing spare.
+ *
+ * The page does not scroll. The shell is exactly the height of the window and the
+ * two side columns scroll inside themselves, so the temperature never leaves the
+ * screen however long someone's schedule gets. A dashboard you have to scroll to
+ * read is a page wearing a dashboard's clothes.
+ *
+ * The temperature is the middle column, on open field with nothing framing it. It
+ * is the number the product exists to change, so it sits where the eye arrives
+ * before it starts reading rather than in whichever corner was left over.
+ *
+ * Starts at 1100px because the schedule editor sets the floor: below about 330px
+ * its seven day chips and two time inputs start fighting, and three columns of
+ * that plus gutters is what 1100 buys. Narrower, the tabs are the better layout,
+ * so the awkward middle is simply never entered.
+ *
+ * This block is last in the file on purpose. Written above the rules it overrides,
+ * the base rules win on source order — which is how an earlier sidebar ended up
+ * stretched down the page and a wordmark never appeared at all.
+ */
+@media (min-width: 1100px) {
+  .shell {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh; /* so a browser's collapsing toolbar does not clip the last row */
+    border: none;
+  }
+
+  /* No rule under the header. The three columns below already have hairlines of
+     their own, and a fourth line crossing all of them boxed the header in as a
+     separate region when it is meant to sit on the same open field. */
+  .bar {
+    width: min(1340px, 100%);
+    margin: 0 auto;
+    padding: 20px 30px 10px;
+    gap: 16px;
+  }
+
+  .bar .brand {
+    display: block;
+    padding: 0;
+    font-size: 18px;
+  }
+
+  /* The two headings are kept apart by space and weight instead of a rule. */
+  .bar .where {
+    padding-left: 16px;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink-dim);
+  }
+
+  .body {
+    padding: 0;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /*
+   * Centred, and bounded.
+   *
+   * It used to be three equal columns running wall to wall, which on a wide
+   * monitor stretched the supporting material out until the reading in the middle
+   * was just the middle of three equal blocks rather than the thing the screen is
+   * about. Now the composition has a width of its own and sits in the window, the
+   * centre column is the widest of the three, and the columns are held apart by a
+   * gap instead of a rule.
+   *
+   * The gap also removes a line nobody drew: three columns that clip their own
+   * scrolling, meeting on a fractional pixel, left a seam at each boundary that no
+   * CSS rule accounted for. Columns that do not touch cannot seam.
+   */
+  .dash {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(380px, 1.2fr) minmax(0, 0.92fr);
+    gap: 30px;
+    width: min(1340px, 100%);
+    margin: 0 auto;
+    padding: 0 30px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .dash-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px 0 24px;
+  }
+
+  /* No rules between the columns either. They were there because columns that
+     scroll independently make a gap look like a gutter that moves — but three
+     vertical lines across a screen this calm were the loudest thing on it, and
+     the panels inside each column already mark where one column ends. */
+
+  .dash-col > .panel:first-child {
+    margin-top: 0;
+  }
+
+  /* The middle column centres itself in the window rather than stacking from the
+     top, which is what puts the reading at eye level. */
+  .hero {
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .hero .modes {
+    padding: 0 0 2px;
+  }
+
+  .hero .mode-says {
+    margin: 8px 20px 4px;
+  }
+
+  .hero .facts {
+    padding: 14px 0 0;
+  }
+
+  .hero .act {
+    margin: 22px auto 0;
+  }
+
+  /* Thin, and only where something actually scrolls. */
+  .dash-col::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dash-col::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+  }
+
+  .dash-col::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .alerts {
+    top: 70px;
+    bottom: auto;
+    left: auto;
+    right: 0;
+    width: 440px;
+    padding: 0 24px 0 0;
+  }
+}
+
+/* --- device thresholds ------------------------------------------------- */
+
+.thrs {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/*
+ * The unit column is a fixed width, not `auto`. With `auto` each row sized its own
+ * third column to its own text — "°C outside" against "%" — so the input boxes
+ * stepped left and right down the list and nothing lined up. These are four numbers
+ * read as a set; they have to sit in one column.
+ */
+.thr {
+  display: grid;
+  grid-template-columns: 1fr 82px 70px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+/* A threshold that belongs to the switch above it rather than to a group of its
+   own — indented so the two read as one setting, not two. */
+.thr-sub {
+  padding-left: 14px;
+  margin: 2px 0 10px;
+}
+
+.thr-l {
+  font-size: 15px;
+}
+
+.thr-n {
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--ink-dim);
+}
+
+.thr input {
+  font: inherit;
+  font-size: 15px;
+  padding: 10px;
+  min-height: 46px;
+  width: 100%;
+  text-align: right;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.18);
+  border: none;
+  border-radius: 11px;
+}
