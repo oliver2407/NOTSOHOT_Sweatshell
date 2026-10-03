@@ -1,4 +1,5 @@
-import { fmt } from "../api.js";
+import { fmt, DEMO } from "../api.js";
+import { demoAir } from "../demo.js";
 import Dial from "./Dial.jsx";
 import { RollOut, RollUp } from "./icons.jsx";
 
@@ -84,7 +85,7 @@ function modeSentence(home) {
   return held ? `Held by you. Back on schedule at ${when}.` : `${verb} at ${when}.`;
 }
 
-export default function ControlTab({ home, busy, onMove, onMode, onWater, wide }) {
+export default function ControlTab({ home, busy, onMove, onMode, onWater, onAir, wide }) {
   const out = home.sheet_out;
   // Auto means the roof unit's own temperature thresholds are driving. Manual is
   // everything else — your buttons and, if you set one, the clock.
@@ -175,8 +176,42 @@ export default function ControlTab({ home, busy, onMove, onMode, onWater, wide }
           roof unit reports -1 for it: there is no DHT on the board. A permanent dash
           is not a reading, it is a column of doubt about every number beside it.
         */}
+        {/*
+          In the demo build the air outside is a thing a visitor can push.
+
+          Auto is a thermostat and a thermostat does nothing until the air crosses a
+          number, so on a link opened at midnight the headline feature looks broken:
+          press Auto, watch nothing move, conclude it is decoration. Two taps here
+          warm the air past the roll-out threshold and the roof unit's own rule does
+          the rest — the rule, not an animation, which is why changing the threshold
+          in Automatic changes what these buttons achieve.
+
+          It is the number that was already on this screen, with the controls either
+          side of it. A strip across the top was tried first and it pushed the
+          composition around for a control that is not part of the product.
+        */}
         <div className="fact">
-          <div className="v">{fmt(home.outside_c, 1)}°</div>
+          <div className="v">
+            {DEMO && (
+              <button
+                className="airstep"
+                aria-label="Cooler outside"
+                onClick={() => { demoAir.nudge(-1.5); onAir?.(); }}
+              >
+                −
+              </button>
+            )}
+            {fmt(home.outside_c, 1)}°
+            {DEMO && (
+              <button
+                className="airstep"
+                aria-label="Warmer outside"
+                onClick={() => { demoAir.nudge(1.5); onAir?.(); }}
+              >
+                +
+              </button>
+            )}
+          </div>
           <div className="k">Outside</div>
         </div>
         <div className="fact">

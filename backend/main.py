@@ -824,14 +824,29 @@ def home():
     # — so the one number the whole screen is built around could come from a test
     # someone started last week and forgot.
     latest = db.latest_reading(source="device")
-    if not latest:
-        return {"ready": False, "message": "Not connected to your roof yet."}
+
+    # No reading ever, which is what a fresh install looks like before the roof unit
+    # is powered up. This used to return a two-key object, and the app replaced the
+    # whole dashboard with one sentence on an empty field — no dial, no controls, no
+    # schedule, nothing to look at or set up while waiting for hardware. The shape is
+    # the same either way now, filled with nulls, so the app draws itself and shows
+    # dashes where the numbers go.
+    ready = latest is not None
+    if latest is None:
+        latest = {
+            "ts": time.time(),
+            "inside": {},
+            "gel_mass_g": None,
+            "ambient_c": None,
+            "humidity": None,
+            "pump_on": False,
+        }
 
     # If the roof stopped reporting, every "is the pump running" flag in that last
     # reading is a frozen snapshot, not the truth. Saying so lets the app stop
     # showing "Watering…" forever and stop disabling the buttons behind it.
     age_s = time.time() - latest["ts"]
-    stale = age_s > STALE_AFTER_S
+    stale = (age_s > STALE_AFTER_S) or not ready
 
     inside_c = latest["inside"].get("box3")
     pct = water_percent(latest["gel_mass_g"])
@@ -871,7 +886,7 @@ def home():
         status, advice = "good", "Cooling normally. Nothing to do."
 
     return {
-        "ready": True,
+        "ready": ready,
         "ts": latest["ts"],
         "stale": stale,
         "inside_c": inside_c,

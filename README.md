@@ -108,7 +108,35 @@ keep awake and nothing to reach.
 
 ```bash
 cd frontend && npm run build:demo     # dist/ is then a self-contained app
+cd frontend && npm run dev:demo       # or run it here first, on :5173
 ```
+
+`dev:demo` exists because `npm run dev` is the *live* build and has none of this in
+it. Checking the demo by running `npm run dev` is the obvious mistake and it looks
+exactly like the demo being broken.
+
+#### Pushing the air outside
+
+Auto is a thermostat, and a thermostat does nothing until the air crosses a number.
+On a real roof that happens late morning, which is no use to a judge opening the link
+at midnight: they press Auto, nothing moves, and they write the feature off.
+
+So in the demo build the **Outside** reading under the dial has a `−` and a `+`
+beside it. Each tap moves the air a degree and a half and holds it there. Warm it
+past **Roll out above** and the sheet goes out by itself; cool it under **Roll up
+below** and it comes back up.
+
+What runs is the roof unit's own rule, reading the thresholds in the Automatic
+column. Set **Roll out above** to 35 and the same taps achieve nothing until the air
+reaches 35 — which is the part worth showing, because it is the part that is real.
+
+Nothing is added to the layout: the number was already on that screen and the two
+controls sit either side of it. A strip across the top was tried first and pushed the
+whole composition around for a control that is not part of the product.
+
+It ships only in the demo build. There is no honest version of this on a real roof,
+and tree-shaking keeps it out — `npm run build` contains none of its code, nor any of
+the demo model's.
 
 Deploying it to Vercel, once:
 

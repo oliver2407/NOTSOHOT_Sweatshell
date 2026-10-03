@@ -139,6 +139,14 @@ export default function App() {
       head: "Didn’t work.",
       body: failed.msg,
     },
+    !home.ready && {
+      key: "never",
+      tone: "var(--warn)",
+      head: "No readings yet.",
+      body:
+        (home.message ?? "Not connected to your roof yet.") +
+        " Everything below is set up and waiting; the numbers fill in once the roof unit is powered and on your wifi.",
+    },
     offline && {
       key: "offline",
       tone: "var(--crit)",
@@ -219,12 +227,14 @@ export default function App() {
       )}
 
       <div className="body">
-        {!home.ready ? (
-          <div className="empty">
-            {home.message} Once the roof unit is powered and on your wifi, its readings
-            arrive here.
-          </div>
-        ) : wide ? (
+        {/*
+          There is no "nothing to show" branch any more. Before a roof unit has ever
+          reported, the whole dashboard used to be replaced by one sentence on an
+          empty field — no dial, no controls, no schedule, nothing to set up while
+          waiting for the hardware. The screen now draws itself and puts dashes where
+          the numbers go, and the alert above says why they are dashes.
+        */}
+        {wide ? (
           /*
            * Desktop has no navigation at all. Four tabs on a screen with room for
            * three columns is a phone habit: the only reason to hide three quarters
@@ -262,6 +272,7 @@ export default function App() {
                 onMove={(out) => act(() => api.moveSheet(out))}
                 onMode={(auto) => act(() => api.setMode(auto))}
                 onWater={() => act(() => api.water())}
+                onAir={refresh}
               />
             </section>
 
@@ -288,6 +299,7 @@ export default function App() {
             onMove={(out) => act(() => api.moveSheet(out))}
             onMode={(auto) => act(() => api.setMode(auto))}
             onWater={() => act(() => api.water())}
+            onAir={refresh}
           />
         ) : tab === "history" ? (
           <HistoryTab series={series} />

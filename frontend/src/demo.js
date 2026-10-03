@@ -41,6 +41,20 @@ function outsideAt(ts) {
   return 27.5 + 5.5 * phase;
 }
 
+/*
+ * The air right now, which a visitor may be holding.
+ *
+ * Until someone touches the buttons beside the Outside reading this is just the
+ * curve above. After that it is whatever they set, and it stays there: the point of
+ * the control is to hold the air somewhere long enough to watch the roof unit react
+ * to it, and air that drifted back to the hour would undo that mid-demonstration.
+ *
+ * Only the present is overridable. The twelve hours of history keep the curve,
+ * because they are the record of a day that already happened.
+ */
+let held = null;
+const airNow = () => (held ?? outsideAt(now()));
+
 const S = {
   t: now(),
   inside: 28.5,
@@ -82,7 +96,7 @@ function advance() {
   if (dt <= 0) return;
   S.t = t;
 
-  const out = outsideAt(t);
+  const out = airNow();
 
   // The bare side of the roof runs well above the air; the covered side runs below
   // it while the gel still has water to give up.
@@ -158,7 +172,7 @@ const round = (n) => Math.round(n * 100) / 100;
     });
   }
   S.inside = S.history[S.history.length - 1].inside_c;
-  S.bare = outsideAt(now()) + 6.0;
+  S.bare = airNow() + 6.0;
   S.sheetOut = S.history[S.history.length - 1].sheet_out;
   S.target = S.sheetOut;
 })();
@@ -257,7 +271,7 @@ function homePayload() {
     stale: false,
     inside_c: round(S.inside),
     inside_humidity: null,
-    outside_c: round(outsideAt(S.t)),
+    outside_c: round(airNow()),
     water_pct: Math.round(S.water),
     litres_used: Math.round(S.litres * 10) / 10,
     sheet_out: S.sheetOut,
@@ -274,7 +288,7 @@ function homePayload() {
       temps: {
         house1: round(S.bare),
         house2: round(S.inside),
-        outside: round(outsideAt(S.t)),
+        outside: round(airNow()),
       },
       connected: true,
       settings_error: null,
@@ -306,6 +320,38 @@ function homePayload() {
     },
   };
 }
+
+/* --------------------------------------------------- the air, as a demo control */
+
+export const demoAir = {
+  /**
+   * Warm or cool the air outside by a step, and let the consequences arrive.
+   *
+   * The roof unit's rule is run here rather than left to the next poll, and the
+   * house is moved twenty minutes along its own lag. Left to the model alone, a
+   * press that crossed the threshold rolled the sheet out and then cooled the house
+   * by a quarter of a degree per poll — a visitor watching the number sit still
+   * reads that as a button that does nothing, and presses it ten more times.
+   *
+   * Twenty minutes is the honest span: that is roughly how long a roof takes to feel
+   * a sheet going over it, and compressing it to one press is the only liberty taken.
+   */
+  nudge(step) {
+    held = Math.min(45, Math.max(8, round(airNow() + step)));
+
+    const air = held;
+    if (S.mode === "auto" && S.moving === 0) {
+      if (air > S.settings.hot) move(true);
+      else if (air < S.settings.cool) move(false);
+    }
+
+    const settle = 1 - Math.exp(-1200 / 1200);
+    const wet = S.water / 100;
+    const coveredTarget = S.target ? air - 1.2 - 2.6 * wet : air + 4.0;
+    S.bare += (air + 6.2 - S.bare) * settle;
+    S.inside += (coveredTarget - S.inside) * settle;
+  },
+};
 
 const ok = (v) => Promise.resolve(v);
 

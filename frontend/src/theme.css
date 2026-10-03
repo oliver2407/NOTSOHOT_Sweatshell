@@ -567,6 +567,33 @@ body {
   color: var(--ink-dim);
 }
 
+/*
+ * The two air steps beside the Outside reading, in the demo build only.
+ *
+ * Deliberately quiet. They are scaffolding for a demonstration, not part of the
+ * product, and the moment they look like the primary action the screen is lying
+ * about what it is. The hit area is 34px while the glyph is 17px — the padding does
+ * the work, so a thumb finds them without them taking up the room a thumb needs.
+ */
+.airstep {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0 11px;
+  margin: 0 -3px;
+  font: inherit;
+  font-size: 17px;
+  line-height: 34px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  vertical-align: baseline;
+}
+
+.airstep:hover,
+.airstep:focus-visible {
+  color: var(--ink);
+}
+
 /* --- primary action --------------------------------------------------- */
 
 /* Sits just under the readings rather than pinned to the bottom of the screen.
