@@ -3,7 +3,8 @@ import { api, clockOf, explain, DEMO } from "./api.js";
 import ControlTab from "./components/ControlTab.jsx";
 import HistoryTab from "./components/HistoryTab.jsx";
 import AutoTab from "./components/AutoTab.jsx";
-import CareTab, { CareRules } from "./components/CareTab.jsx";
+import CareTab from "./components/CareTab.jsx";
+import VideoPanel from "./components/VideoPanel.jsx";
 import { Drop, Chart, Clock, Leaf } from "./components/icons.jsx";
 import useIsWide from "./useIsWide.js";
 
@@ -261,7 +262,7 @@ export default function App() {
                 onDone={() => act(() => api.serviced())}
                 compact
               />
-              <CareRules />
+              <VideoPanel home={home} />
             </section>
 
             <section className="dash-col hero">

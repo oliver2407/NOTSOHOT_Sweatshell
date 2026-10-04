@@ -594,6 +594,89 @@ body {
   color: var(--ink);
 }
 
+/* --- the clip, desktop column ----------------------------------------- */
+/*
+ * Sixteen by nine, held by aspect-ratio rather than a fixed height, so the column
+ * can be any width and the box never letterboxes itself. No border: the fill is a
+ * shade darker than the panel it sits in, which is enough to read as a window.
+ */
+
+.vidbox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.vid {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/*
+ * The heading changes with the state, so the badge beside it has to sit on the
+ * baseline rather than push the heading around when it appears and goes.
+ */
+.vidhead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/*
+ * The same "now" tag the roll buttons use, for the same reason: it marks the thing
+ * that is happening this second. It is not the warning colour — nothing here is
+ * wrong — and not the gel colour either, which on this screen means "press me".
+ */
+.vidlive {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gel);
+}
+
+.vidempty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/*
+ * The path of the file that is not there yet.
+ *
+ * It is addressed to whoever is building this, not to a judge — but leaving it out
+ * meant the panel said "coming shortly" and gave no clue where to put the thing that
+ * would make it stop saying that.
+ */
+.vidfile {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.vidcap {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
 /* --- primary action --------------------------------------------------- */
 
 /* Sits just under the readings rather than pinned to the bottom of the screen.
