@@ -217,11 +217,7 @@ function DeviceThresholds({ device, busy, onPatch, onSetUrl }) {
       {device.settings_error ? (
         <p className="tiny warnline">{device.settings_error}</p>
       ) : (
-        <p className="tiny">
-          Saved onto the roof unit itself — each one is read back from it to confirm
-          it landed, so these survive a restart of this app and apply even if it is
-          closed.
-        </p>
+        <p className="tiny"></p>
       )}
 
       <details className="fold">
@@ -288,7 +284,7 @@ export default function AutoTab({
             <div className="note">
               {home.auto_water
                 ? "Tops it up when the gel dries out"
-                : "Off — you water it by hand"}
+                : "Off, you water it by hand"}
             </div>
           </div>
           <button
@@ -314,7 +310,7 @@ export default function AutoTab({
             <div className="lead">Roll on a schedule</div>
             <div className="note">
               {deviceDriving
-                ? "Standing by — the roof unit is deciding by temperature"
+                ? "Standing by, the roof unit is deciding by temperature"
                 : s.enabled
                 ? `${(s.windows ?? []).filter((w) => w.enabled).length} time${
                     (s.windows ?? []).filter((w) => w.enabled).length === 1 ? "" : "s"

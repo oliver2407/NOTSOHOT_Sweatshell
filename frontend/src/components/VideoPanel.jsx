@@ -137,8 +137,7 @@ export default function VideoPanel({ home }) {
       </div>
 
       <p className="vidcap">
-        Recorded on the rig, not a live camera. It follows what the roof unit is doing
-        rather than showing you the roof.
+        The functions of the SweatShell are pre-recorded, rather than being captured by a live camera feed.
       </p>
     </div>
   );
