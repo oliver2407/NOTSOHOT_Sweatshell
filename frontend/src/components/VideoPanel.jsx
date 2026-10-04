@@ -102,15 +102,35 @@ export default function VideoPanel({ home }) {
             <span className="vidfile">{clip.src}</span>
           </div>
         ) : (
+          /*
+           * No controls, no sound, nothing to press.
+           *
+           * This panel is a readout, not a player: what it shows is whatever the
+           * roof unit is doing, and a scrub bar would let someone park it on a
+           * frame of the sheet rolling out while the sheet is in fact rolled up —
+           * a picture contradicting the words beside it. Muted for the same
+           * reason it is silent on the rig, and because a page that starts making
+           * noise in a quiet judging room is its own kind of failure.
+           *
+           * `controlsList` and `disablePictureInPicture` close the back doors:
+           * right-click on desktop and long-press on mobile both offer a player
+           * otherwise.
+           */
           <video
             ref={video}
             className="vid"
             src={clip.src}
             muted
             loop
+            autoPlay
             playsInline
             preload="metadata"
-            controls={action === "idle"}
+            controls={false}
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            tabIndex={-1}
+            aria-hidden="true"
+            onContextMenu={(e) => e.preventDefault()}
             onError={() => setMissing((m) => ({ ...m, [action]: true }))}
           />
         )}
