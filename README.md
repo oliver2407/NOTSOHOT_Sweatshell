@@ -1,32 +1,19 @@
 # SweatShell
 
-A roll-up roof sheet that cools a shed by sweating, and the app that runs it.
+SweatShell is a **motorised roller** mounted at the top of a shed or roof, holding a food-grade, biodegradable sheet that works like skin:
+- A **reflective eggshell coating** on top bounces sunlight away
+- A **seaweed hydrogel layer** underneath holds water and evaporates it, actively pulling heat out of the roof, the way sweat cools skin
 
-A motorised roller sits at the top of a shed roof. It holds a cloth sheet coated with
-seaweed gel. When the day turns hot the roller lets the sheet down over the roof; the
-gel evaporates its water and carries heat away, the way sweat cools skin. When the
-day cools, the sheet rolls back up.
+Once the sheet is rolled out and soaked, it keeps cooling with **no electricity**, so it still works through the blackout-plus-heatwave combination that causes the most harm.
 
-The gel is 2% sodium alginate with glycerol, set by spraying with calcium chloride,
-about 4 mm thick wet. It runs in **strips parallel to the roller with gaps between**,
-so the sheet bends at the gaps like a sushi mat instead of cracking the gel. The top
-edge is a **bare cloth leader** that wraps the roller first, so gel never touches the
-roller; the bottom edge has a thin weight bar so the sheet lies flat.
-
-Every material is food grade: eggshell, seaweed powder, calcium chloride, glycerol.
-
-Once the sheet is out and soaked it keeps cooling **with no electricity**. That is the
-point: heatwaves and blackouts arrive together, and that is exactly when fixed
-sprinklers and air conditioning stop.
-
+An ESP32 sensor system runs the whole cycle:
+- **Rolls out** when it gets hot, and **rolls away** when it cools down, so there's no winter penalty like permanent paint
+- **Auto top-up:** while the sheet is out, a moisture sensor tops up the gel with short pulses of water whenever it starts to dry out, never running continuously like a sprinkler
 ---
 
 ## Who it is for
 
-Livestock sheds first. Heat stress is a recurring cash loss for farmers — dairy cows
-eat less and give less milk, poultry sheds can lose birds in a single heatwave. The
-same sheet protects people in heat-vulnerable buildings: older isolated residents,
-school demountables, aged care.
+Livestock sheds are our first market, because heat stress costs farmers real money. The same sheet protects people in heat-vulnerable buildings, such as older, isolated residents, school demountables and aged care, making it a dual-impact solution built on one low-cost mechanism.
 
 Why not the existing fixes:
 
@@ -396,6 +383,11 @@ structure, not to the tiles.
 ---
 
 ## Team
+We're a cross-disciplinary team of university students from Australia and New Zealand, combining IT, IoT and biochemistry.
 
-Tony (IoT/ESP32, eggshell coat, coordination) · Vacha (seaweed gel) · Iris (roller
-mechanism) · Oliver (dashboard)
+- **Triet (Tony) Le** (IT, Melbourne): project coordination. Tony kept the team on track across time zones, planned the build and testing schedule.
+- **Thao (Iris) Huynh** (IT, Melbourne): roller mechanism. Iris built and mounted the motorised roller, wired the stepper motor to the ESP32, and tuned the roll-out length, speed and strength so the sheet deploys reliably.
+- **Tam (Oliver) Tran**: web app. Oliver built the live dashboard with a React frontend and Python backend, hosted on Vercel, showing temperatures, gel water level and the event log.
+- **Vacha Patel** (biochemistry, New Zealand): seaweed gel recipe. Vacha developed the gel formula, testing ratios of sodium alginate, calcium chloride and glycerol until the gel set firmly, held water and stayed flexible enough to roll.
+
+Tony, Iris and Oliver built the IoT system together, wiring the sensors, relay and pump, and made the sheet by hand, applying the gel layers and the eggshell coating.
